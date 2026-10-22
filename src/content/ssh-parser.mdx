@@ -1,0 +1,30 @@
+## The problem
+
+Authentication logs contain repeated events that can be difficult to review manually. A small parser can surface patterns worth investigating while keeping its logic understandable.
+
+## Current implementation
+
+The Python SIEM Log Parser reads Linux authentication logs, counts failed SSH logins by source IP, and writes alerts to an output file. The baseline rule flags a source when its failure count reaches at least three. A second rule flags a successful login from a source that has already reached that threshold, because repeated failures followed by a success deserve a closer look.
+
+## An illustrative example
+
+Three failed logins from `192.0.2.25` meet the baseline threshold. This is documentation-only example data, not a captured incident or an excerpt of repository output.
+
+The resulting analyst question is: **Do these failures represent a mistyped password, an automated scan, or an attempt to access an account?** The count alone does not answer it.
+
+## What the rule cannot establish
+
+- Failures counted across an entire file may be far apart in time.
+- Multiple users can share a source address.
+- Failed attempts do not demonstrate successful access or compromise.
+- Input formats and malformed lines can affect parsing reliability.
+
+## Priorities for the next version
+
+Start with tests that exercise different authentication events and malformed input. Then extract timestamps and add a time window so the threshold has meaningful temporal context. Structured JSON or CSV output can follow once the detection behavior is reliable.
+
+**Status:** both rules are implemented. The improvements above are planned, not completed.
+
+[View the source on GitHub →](https://github.com/alecbiddinger/Python-SIEM-Log-Parser)
+
+[Explore the interactive rule example →](#contact)

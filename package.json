@@ -1,0 +1,26 @@
+{
+  "name": "alec-soc-portfolio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 4173",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "vite": "8.3.4",
+    "typescript": "5.9.3",
+    "tailwindcss": "4.2.1",
+    "@mdx-js/rollup": "3.1.1",
+    "@tailwindcss/postcss": "4.2.1",
+    "postcss": "8.5.31"
+  }
+}

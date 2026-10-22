@@ -1,0 +1,59 @@
+## The problem
+
+Network troubleshooting means reaching for a different tool at each layer: DNS, routing, TCP, HTTP, and TLS. Those tools are not always installed, or the same version, on the machine in front of me. I wanted one consistent environment I could start on any host with Docker, use, and throw away without losing my results.
+
+## What I built
+
+The [IT Troubleshooting Toolbox](https://github.com/alecbiddinger/it-toolbox) is an Ubuntu 24.04 Docker image with common diagnostic utilities installed: `dig`, `ping`, `traceroute`, `nc`, `nmap`, `curl`, `openssl`, `tcpdump`, `ip`, `ss`, `jq`, `whois`, and Python with virtual-environment support. Each session runs in a disposable container. Reports are saved to a bind-mounted `work/` folder on the host, so they remain after the container is removed.
+
+A PowerShell launcher, `toolbox.ps1`, starts a session with that folder mounted. It finds the folder relative to the script, creates it if needed, handles paths with spaces, and passes Docker's exit code back to the caller.
+
+## Helper scripts
+
+Three small Bash helpers wrap the checks I run most often:
+
+- `dns-check.sh` shows the DNS status and answers, with a three-second timeout and a single attempt. It rejects mistyped record types and does a reverse lookup when asked for the PTR record of an IP address.
+- `port-check.sh` tests exactly one TCP port with a bounded connection wait.
+- `web-check.sh` prints HTTP headers and timing, enforces certificate verification even if a local curl configuration tries to turn it off, fails on 4xx/5xx responses, and accepts only HTTP(S) URLs.
+
+Each helper rejects missing or invalid arguments with exit code `2`, so a typo fails clearly instead of running something unexpected.
+
+## A layered workflow
+
+The repository documents a workflow from name resolution up to the application: resolve the name with `dig`, compare reachability with `ping`, test the port, identify the service with a narrow Nmap scan, then inspect HTTP and validate TLS. Reading each result carefully matters as much as running the command:
+
+- A failed ping does not prove a host is down.
+- A successful TCP connection does not prove TLS or the application is healthy.
+- An Nmap `filtered` result is inconclusive, and `open` is not a vulnerability finding.
+
+## Finding silent failures
+
+A review found that the original tests checked whether each helper ran, not whether its answer was right. Stricter tests turned up five bugs where a helper returned a wrong result without an error:
+
+- A mistyped DNS record type, such as `MXX`, passed validation. `dig` quietly queried an `A` record instead, and the helper reported success.
+- A PTR check of an IP address looked up the address as a literal name and reported `NXDOMAIN`, instead of doing a reverse lookup.
+- Hostnames with spaces or empty labels exited with the wrong error code.
+- A `~/.curlrc` file containing `insecure` could switch off the web check's certificate verification.
+- On Windows PowerShell 5.1, the launcher corrupted quotes and empty arguments on their way to Docker.
+
+For a troubleshooting tool, a wrong answer that looks like success is worse than a clear failure, so each fix comes with a test for it.
+
+## How it is tested
+
+The smoke test runs inside the image with networking disabled. It starts local HTTP, HTTPS, and DNS test servers, plus endpoints that never answer, then checks each helper's exact exit code and output: DNS answers, `NXDOMAIN` and reverse lookups, HTTPS certificate enforcement, unfollowed redirects, and timeouts. A separate launcher test checks work paths, exit-code propagation, and that quotes and empty arguments reach the container unchanged.
+
+GitHub Actions lints the Bash scripts with ShellCheck, checks PowerShell syntax, builds the image, runs both tests, and repeats the launcher test using the argument handling of Windows PowerShell 5.1.
+
+## Security considerations
+
+- The networking tools are for systems I own or am authorized to test. Examples use documentation addresses and `example.com`.
+- The container avoids `--privileged`. Raw-packet tools depend on specific runtime permissions, and the README shows a reduced-permission run for ordinary DNS and HTTP checks.
+- Packet captures and verbose output can contain sensitive data, so reports should be reviewed before sharing.
+
+## Limits
+
+The tests run offline against local test servers, so ICMP, WHOIS, packet capture, and real-world DNS and TLS still have to be checked by hand. The launcher's Windows PowerShell 5.1 behavior is emulated in CI and has not yet been confirmed on a real Windows machine. Packet capture sees only the container's own network traffic, not the host's physical adapter. Docker Desktop also runs containers inside a VM, so routing, VPN, and DNS results can differ from native host tools.
+
+**Status:** version 1.0.0 is on GitHub under the MIT license. The fixes and tests above are merged into the main branch, where the validation workflow passes, and are planned for a 1.0.1 release. The sample output in the repository is illustrative, not captured test results.
+
+[View the repository on GitHub →](https://github.com/alecbiddinger/it-toolbox)

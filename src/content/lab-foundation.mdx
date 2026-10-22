@@ -1,0 +1,32 @@
+## The question
+
+How can I build a manageable environment for learning endpoint monitoring across Windows and Linux?
+
+## What I built
+
+The lab runs three virtual machines in Oracle VirtualBox: a Wazuh all-in-one server, a Windows 11 endpoint, and an Ubuntu Server endpoint. Both endpoints have Wazuh agents enrolled with the manager, and both appear in the dashboard.
+
+The manager uses the host-only address `192.168.56.101`. Host-only networking supports communication between the host and lab VMs; NAT adapters provide outbound connectivity for downloads and updates.
+
+## A troubleshooting example
+
+The initial Windows agent installation did not produce a usable service. Enrollment through the graphical workflow with an authentication key subsequently succeeded, and the service reported running. On Ubuntu, the agent was installed using a downloaded package and configured with the manager address.
+
+Service health and agent enrollment alone do not establish that a log source is being collected, so each source was validated separately. A Sysmon event from Windows and an SSH authentication event from Ubuntu were each confirmed end to end, from the endpoint through the agent to the Wazuh dashboard.
+
+## What this demonstrates
+
+- Multi-VM lab deployment and basic virtual networking.
+- Windows and Linux agent installation and enrollment.
+- Troubleshooting installation and connectivity before moving on to detection work.
+- Validating telemetry end to end before writing or testing detections.
+
+## SOC-001: testing in progress
+
+With Sysmon and SSH authentication events confirmed in Wazuh, testing has started on SOC-001: controlled SSH authentication failures on the Ubuntu endpoint. The goal is to trace a known event from its source log through Wazuh, then document the source IP, targeted accounts, time window, and any later successful login.
+
+**Status:** infrastructure, agent enrollment, and telemetry validation are complete, and SOC-001 testing is in progress. No detection results or completed investigations are claimed yet. Screenshots, raw events, alert details, and an analyst timeline will be added as SOC-001 is documented.
+
+[View the lab repository on GitHub →](https://github.com/alecbiddinger/Home-SOC-Lab)
+
+[Explore the lab architecture →](#lab)
